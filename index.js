@@ -12,7 +12,7 @@ app.use(express.json());
 
 const verifyToken = (req, res, next) => {
   const authorization = req.headers.authorization;
-  console.log(authorization)
+
   if (!authorization) {
     res.status(401).send({ error: true, message: "Unauthorized access" });
   }
@@ -55,8 +55,19 @@ async function run() {
       res.send({ token });
     });
 
+    // verify Admin 
+    const verifyAdmin = async(req, res, next) =>{
+      const email = req.decoded.email
+      const query = {email : email}
+      const user = await usersCollection.findOne(query)
+      if(user?.role !== 'admin'){
+        res.status(403).send({error: true, message: 'forbidden Access'})
+      }
+      next()
+    }
+
     // users functionalities
-    app.get("/users", async (req, res) => {
+    app.get("/users", verifyToken, async (req, res) => {
       const result = await usersCollection.find().toArray();
       res.send(result);
     });
@@ -73,38 +84,38 @@ async function run() {
     });
 
     // find out is the user a admin or not
-    app.get('/users/admin/:email', verifyToken, async(req, res) =>{
-      const email = req.params.email
-      if(req.decoded.email !== email){
-        res.send({admin: false})
+    app.get("/users/admin/:email", verifyToken, async (req, res) => {
+      const email = req.params.email;
+      if (req.decoded.email !== email) {
+        res.send({ admin: false });
       }
-      const query = {email : email}
-      const user = await usersCollection.findOne(query)
-      const result = {admin : user?.role === 'admin'}
-      res.send(result)
-    })
-// find out is the user a instructor or not
-    app.get('/users/instructor/:email', verifyToken, async(req, res) =>{
-      const email = req.params.email
-      if(req.decoded.email !== email){
-        res.send({instructor: false})
+      const query = { email: email };
+      const user = await usersCollection.findOne(query);
+      const result = { admin: user?.role === "admin" };
+      res.send(result);
+    });
+    // find out is the user a instructor or not
+    app.get("/users/instructor/:email", verifyToken, async (req, res) => {
+      const email = req.params.email;
+      if (req.decoded.email !== email) {
+        res.send({ instructor: false });
       }
-      const query = {email : email}
-      const user = await usersCollection.findOne(query)
-      const result = {instructor : user?.role === 'instructor'}
-      res.send(result)
-    })
+      const query = { email: email };
+      const user = await usersCollection.findOne(query);
+      const result = { instructor: user?.role === "instructor" };
+      res.send(result);
+    });
     // find out is the user a student or not
-    app.get('/users/student/:email', verifyToken, async(req, res) =>{
-      const email = req.params.email
-      if(req.decoded.email !== email){
-        res.send({student: false})
+    app.get("/users/student/:email", verifyToken, async (req, res) => {
+      const email = req.params.email;
+      if (req.decoded.email !== email) {
+        res.send({ student: false });
       }
-      const query = {email : email}
-      const user = await usersCollection.findOne(query)
-      const result = {student : user?.role === 'student'}
-      res.send(result)
-    })
+      const query = { email: email };
+      const user = await usersCollection.findOne(query);
+      const result = { student: user?.role === "student" };
+      res.send(result);
+    });
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
