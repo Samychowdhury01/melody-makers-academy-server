@@ -10,6 +10,21 @@ const port = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
+const verifyToken = (req, res, next) => {
+  const authorization = req.headers.authorization;
+  console.log(authorization)
+  if (!authorization) {
+    res.status(401).send({ error: true, message: "Unauthorized access" });
+  }
+  const token = authorization.split(" ")[1];
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (error, decoded) => {
+    if (error) {
+      res.status(401).send({ error: true, message: "Unauthorized access" });
+    }
+    req.decoded = decoded;
+    next();
+  });
+};
 
 // MongoDB
 
@@ -56,6 +71,19 @@ async function run() {
       const result = await usersCollection.insertOne(user);
       res.send(result);
     });
+
+    // find out is the user a admin or not
+    app.get('/users/admin/:email', verifyToken, async(req, res) =>{
+      const email = req.params.email
+      if(req.decoded.email !== email){
+        res.send({admin: false})
+      }
+      const query = {email : email}
+      const user = await usersCollection.findOne(query)
+      const result = {admin : user?.role === 'admin'}
+      res.send(result)
+    })
+
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
