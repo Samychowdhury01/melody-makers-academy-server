@@ -43,8 +43,10 @@ async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
-
+// collections
     const usersCollection = client.db("melodyDB").collection("users");
+    const classesCollection = client.db("melodyDB").collection("classes");
+    const selectedClassesCollection = client.db("melodyDB").collection("selectedClasses");
 
     // jwt
     app.post("/jwt", (req, res) => {
@@ -55,39 +57,39 @@ async function run() {
       res.send({ token });
     });
 
-    // verify Admin 
-    const verifyAdmin = async(req, res, next) =>{
-      const email = req.decoded.email
-      const query = {email : email}
-      const user = await usersCollection.findOne(query)
-      if(user?.role !== 'admin'){
-        res.status(403).send({error: true, message: 'forbidden Access'})
+    // verify Admin
+    const verifyAdmin = async (req, res, next) => {
+      const email = req.decoded.email;
+      const query = { email: email };
+      const user = await usersCollection.findOne(query);
+      if (user?.role !== "admin") {
+        res.status(403).send({ error: true, message: "forbidden Access" });
       }
-      next()
-    }
-    // verify Instructor 
-    const verifyInstructor = async(req, res, next) =>{
-      const email = req.decoded.email
-      const query = {email : email}
-      const user = await usersCollection.findOne(query)
-      if(user?.role !== 'admin'){
-        res.status(403).send({error: true, message: 'forbidden Access'})
+      next();
+    };
+    // verify Instructor
+    const verifyInstructor = async (req, res, next) => {
+      const email = req.decoded.email;
+      const query = { email: email };
+      const user = await usersCollection.findOne(query);
+      if (user?.role !== "admin") {
+        res.status(403).send({ error: true, message: "forbidden Access" });
       }
-      next()
-    }
-    // verify student 
-    const verifyStudent = async(req, res, next) =>{
-      const email = req.decoded.email
-      const query = {email : email}
-      const user = await usersCollection.findOne(query)
-      if(user?.role !== 'admin'){
-        res.status(403).send({error: true, message: 'forbidden Access'})
+      next();
+    };
+    // verify student
+    const verifyStudent = async (req, res, next) => {
+      const email = req.decoded.email;
+      const query = { email: email };
+      const user = await usersCollection.findOne(query);
+      if (user?.role !== "admin") {
+        res.status(403).send({ error: true, message: "forbidden Access" });
       }
-      next()
-    }
+      next();
+    };
 
     // users functionalities
-    app.get("/users", verifyToken, async (req, res) => {
+    app.get("/users", verifyToken, verifyAdmin, async (req, res) => {
       const result = await usersCollection.find().toArray();
       res.send(result);
     });
@@ -103,6 +105,7 @@ async function run() {
       res.send(result);
     });
 
+
     // find out is the user a admin or not
     app.get("/users/admin/:email", verifyToken, async (req, res) => {
       const email = req.params.email;
@@ -112,6 +115,7 @@ async function run() {
       const query = { email: email };
       const user = await usersCollection.findOne(query);
       const result = { admin: user?.role === "admin" };
+      console.log(result)
       res.send(result);
     });
     // find out is the user a instructor or not
@@ -136,6 +140,23 @@ async function run() {
       const result = { student: user?.role === "student" };
       res.send(result);
     });
+
+// add and get classes 
+
+// add a new class by an instructor 
+app.post('/classes', verifyToken, verifyInstructor, async(req, res) => {
+  const classData = req.body
+const result = await classesCollection.insertOne(classData)
+res.send(result)
+
+})
+
+
+
+
+
+
+
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
