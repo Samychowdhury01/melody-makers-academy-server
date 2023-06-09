@@ -65,6 +65,17 @@ async function run() {
       }
       next()
     }
+    // verify Instructor 
+    const verifyInstructor = async(req, res, next) =>{
+      const email = req.decoded.email
+      const query = {email : email}
+      const user = await usersCollection.findOne(query)
+      if(user?.role !== 'admin'){
+        res.status(403).send({error: true, message: 'forbidden Access'})
+      }
+      next()
+    }
+
 
     // users functionalities
     app.get("/users", verifyToken, async (req, res) => {
