@@ -94,7 +94,17 @@ async function run() {
       const result = {instructor : user?.role === 'instructor'}
       res.send(result)
     })
-
+    // find out is the user a student or not
+    app.get('/users/student/:email', verifyToken, async(req, res) =>{
+      const email = req.params.email
+      if(req.decoded.email !== email){
+        res.send({student: false})
+      }
+      const query = {email : email}
+      const user = await usersCollection.findOne(query)
+      const result = {student : user?.role === 'student'}
+      res.send(result)
+    })
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
