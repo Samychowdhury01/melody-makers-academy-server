@@ -107,8 +107,24 @@ async function run() {
       res.send(result);
     });
 
-    // make a user Admin
-    app.patch('/change-role', verifyToken, verifyAdmin, )
+    // change the users role
+    app.patch(
+      "/users/change-role",
+      verifyToken,
+      verifyAdmin,
+      async (req, res) => {
+        const email = req.query.email;
+        const role = req.query.role;
+        const filter = { email: email };
+        const updateDoc = {
+          $set: {
+            role: role,
+          },
+        };
+        const result = await usersCollection.updateOne(filter, updateDoc);
+        res.send(result);
+      }
+    );
 
     // find out is the user a admin or not
     app.get("/users/role/:email", verifyToken, async (req, res) => {
@@ -118,15 +134,13 @@ async function run() {
       }
       const query = { email: email };
       const user = await usersCollection.findOne(query);
-      if(user?.role === 'admin'){
+      if (user?.role === "admin") {
         const result = { admin: user?.role === "admin" };
         res.send(result);
-      }
-      else if(user?.role === 'instructor'){
+      } else if (user?.role === "instructor") {
         const result = { instructor: user?.role === "instructor" };
-      res.send(result);
-      }
-      else{
+        res.send(result);
+      } else {
         const result = { student: user?.role === "student" };
         res.send(result);
       }
@@ -168,28 +182,33 @@ async function run() {
     // add and get classes
 
     // get all the classes from collection
-   
-    app.get("/classes",verifyToken, verifyAdmin, async (req, res) => {
+
+    app.get("/classes", verifyToken, verifyAdmin, async (req, res) => {
       const result = await classesCollection.find().toArray();
       res.send(result);
     });
 
-
     // get only approved classes
     app.get("/approved-classes", async (req, res) => {
       const query = { status: "approved" };
-      const result = await classesCollection.find(query, {sort: { "totalEnrolled": -1 }}).toArray();
+      const result = await classesCollection
+        .find(query, { sort: { totalEnrolled: -1 } })
+        .toArray();
       res.send(result);
     });
 
-    app.get("/classes/:email", verifyToken, verifyInstructor, async (req, res) => {
-      const email = req.params.email
-      const query = { instructorEmail: email };
-      const result = await classesCollection.find(query).toArray();
-      console.log(result)
-      res.send(result);
-    });
-
+    app.get(
+      "/classes/:email",
+      verifyToken,
+      verifyInstructor,
+      async (req, res) => {
+        const email = req.params.email;
+        const query = { instructorEmail: email };
+        const result = await classesCollection.find(query).toArray();
+        console.log(result);
+        res.send(result);
+      }
+    );
 
     // add a new class by an instructor
     app.post("/classes", verifyToken, verifyInstructor, async (req, res) => {
@@ -197,8 +216,6 @@ async function run() {
       const result = await classesCollection.insertOne(classData);
       res.send(result);
     });
-
-
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
