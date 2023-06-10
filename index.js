@@ -135,15 +135,15 @@ async function run() {
       const query = { email: email };
       const user = await usersCollection.findOne(query);
       if (user?.role === "admin") {
-        console.log('from admin')
+       
         const result = { admin: user?.role === "admin" };
         res.send(result);
       } else if (user?.role === "instructor") {
-        console.log('from instructor')
+        
         const result = { instructor: user?.role === "instructor" };
         res.send(result);
       } else {
-        console.log('from student')
+     
         const result = { student: user?.role === "student" };
         res.send(result);
       }
@@ -200,6 +200,7 @@ async function run() {
       res.send(result);
     });
 
+    // find out specific instructors classes
     app.get(
       "/classes/:email",
       verifyToken,
@@ -208,7 +209,7 @@ async function run() {
         const email = req.params.email;
         const query = { instructorEmail: email };
         const result = await classesCollection.find(query).toArray();
-        console.log(result);
+        
         res.send(result);
       }
     );
@@ -220,7 +221,7 @@ async function run() {
       res.send(result);
     });
 
-     // adding a feedback to the class data
+     // adding a status to the class data
      app.patch(
       "/classes/status",
       verifyToken,
@@ -235,7 +236,25 @@ async function run() {
           },
         };
         const result = await classesCollection.updateOne(filter, updateDoc);
-        console.log(result)
+        res.send(result);
+      }
+    );
+     // adding a feedback to the class data
+     app.patch(
+      "/classes/feedback/:id",
+      verifyToken,
+      verifyAdmin,
+      async (req, res) => {
+        const id = req.params.id;
+        const feedback = req.body.feedback;
+        console.log(feedback)
+        const filter = { _id : new ObjectId(id) };
+        const updateDoc = {
+          $set: {
+            feedback: feedback,
+          },
+        };
+        const result = await classesCollection.updateOne(filter, updateDoc);
         res.send(result);
       }
     );
