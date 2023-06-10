@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
 const app = express();
 const port = process.env.PORT || 5000;
@@ -135,12 +135,15 @@ async function run() {
       const query = { email: email };
       const user = await usersCollection.findOne(query);
       if (user?.role === "admin") {
+        console.log('from admin')
         const result = { admin: user?.role === "admin" };
         res.send(result);
       } else if (user?.role === "instructor") {
+        console.log('from instructor')
         const result = { instructor: user?.role === "instructor" };
         res.send(result);
       } else {
+        console.log('from student')
         const result = { student: user?.role === "student" };
         res.send(result);
       }
@@ -216,6 +219,26 @@ async function run() {
       const result = await classesCollection.insertOne(classData);
       res.send(result);
     });
+
+     // adding a feedback to the class data
+     app.patch(
+      "/classes/status",
+      verifyToken,
+      verifyAdmin,
+      async (req, res) => {
+        const id = req.query.id;
+        const status = req.query.status;
+        const filter = { _id : new ObjectId(id) };
+        const updateDoc = {
+          $set: {
+            status: status,
+          },
+        };
+        const result = await classesCollection.updateOne(filter, updateDoc);
+        console.log(result)
+        res.send(result);
+      }
+    );
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
