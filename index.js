@@ -96,6 +96,14 @@ async function run() {
       res.send(result);
     });
 
+    // instructors
+    app.get("/users/instructors", async (req, res) => {
+      const query = {role : 'instructor'}
+      const result = await usersCollection.find().toArray();
+      res.send(result);
+    });
+
+    // check and create new user
     app.post("/users", async (req, res) => {
       const user = req.body;
       const query = { email: user?.email };
@@ -149,44 +157,10 @@ async function run() {
       }
     });
 
-    // app.get("/users/admin/:email", verifyToken, async (req, res) => {
-    //   const email = req.params.email;
-    //   if (req.decoded.email !== email) {
-    //     res.send({ admin: false });
-    //   }
-    //   const query = { email: email };
-    //   const user = await usersCollection.findOne(query);
-    //   const result = { admin: user?.role === "admin" };
-    //   res.send(result);
-    // });
-    // // find out is the user a instructor or not
-    // app.get("/users/instructor/:email", verifyToken, async (req, res) => {
-    //   const email = req.params.email;
-    //   if (req.decoded.email !== email) {
-    //     res.send({ instructor: false });
-    //   }
-    //   const query = { email: email };
-    //   const user = await usersCollection.findOne(query);
-    //   const result = { instructor: user?.role === "instructor" };
-    //   res.send(result);
-    // });
-    // // find out is the user a student or not
-    // app.get("/users/student/:email", verifyToken, async (req, res) => {
-    //   const email = req.params.email;
-    //   if (req.decoded.email !== email) {
-    //     res.send({ student: false });
-    //   }
-    //   const query = { email: email };
-    //   const user = await usersCollection.findOne(query);
-    //   const result = { student: user?.role === "student" };
-    //   res.send(result);
-    // });
 
-    // add and get classes
+     // get all the classes from collection
 
-    // get all the classes from collection
-
-    app.get("/classes", verifyToken, verifyAdmin, async (req, res) => {
+     app.get("/classes", verifyToken, verifyAdmin, async (req, res) => {
       const result = await classesCollection.find().toArray();
       res.send(result);
     });
@@ -258,6 +232,38 @@ async function run() {
         res.send(result);
       }
     );
+
+    // update classes data by instructor
+    // TODO: have to uncomment this
+    // app.patch(
+    //   "/classes/:id",
+    //   verifyToken,
+    //   verifyInstructor,
+    //   async (req, res) => {
+    //     const id = req.params.id;
+    //     const data = req.body.feedback;
+    //     console.log(feedback)
+    //     const filter = { _id : new ObjectId(id) };
+    //     const updateDoc = {
+    //       $set: {
+    //         ...data
+    //       }
+    //     };
+    //     const result = await classesCollection.updateOne(filter, updateDoc);
+    //     res.send(result);
+    //   }
+    // );
+
+
+    // API's for selected classes
+    app.get('/my-classes/:email', verifyToken, verifyStudent, async(req, res)=>{
+      const email = req.params.id
+      const query = {email : email}
+      const result = await selectedClassesCollection.find(query).toArray()
+      res.send(result)
+    })
+
+    
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
