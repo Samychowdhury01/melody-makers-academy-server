@@ -43,10 +43,12 @@ async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
-// collections
+    // collections
     const usersCollection = client.db("melodyDB").collection("users");
     const classesCollection = client.db("melodyDB").collection("classes");
-    const selectedClassesCollection = client.db("melodyDB").collection("selectedClasses");
+    const selectedClassesCollection = client
+      .db("melodyDB")
+      .collection("selectedClasses");
 
     // jwt
     app.post("/jwt", (req, res) => {
@@ -72,7 +74,7 @@ async function run() {
       const email = req.decoded.email;
       const query = { email: email };
       const user = await usersCollection.findOne(query);
-      if (user?.role !== "admin") {
+      if (user?.role !== "instructor") {
         res.status(403).send({ error: true, message: "forbidden Access" });
       }
       next();
@@ -82,7 +84,7 @@ async function run() {
       const email = req.decoded.email;
       const query = { email: email };
       const user = await usersCollection.findOne(query);
-      if (user?.role !== "admin") {
+      if (user?.role !== "student") {
         res.status(403).send({ error: true, message: "forbidden Access" });
       }
       next();
@@ -105,56 +107,96 @@ async function run() {
       res.send(result);
     });
 
+    // make a user Admin
+    app.patch('/change-role', verifyToken, verifyAdmin, )
 
     // find out is the user a admin or not
-    app.get("/users/admin/:email", verifyToken, async (req, res) => {
+    app.get("/users/role/:email", verifyToken, async (req, res) => {
       const email = req.params.email;
       if (req.decoded.email !== email) {
-        res.send({ admin: false });
+        res.send([]);
       }
       const query = { email: email };
       const user = await usersCollection.findOne(query);
-      const result = { admin: user?.role === "admin" };
+      if(user?.role === 'admin'){
+        const result = { admin: user?.role === "admin" };
+        res.send(result);
+      }
+      else if(user?.role === 'instructor'){
+        const result = { instructor: user?.role === "instructor" };
+      res.send(result);
+      }
+      else{
+        const result = { student: user?.role === "student" };
+        res.send(result);
+      }
+    });
+
+    // app.get("/users/admin/:email", verifyToken, async (req, res) => {
+    //   const email = req.params.email;
+    //   if (req.decoded.email !== email) {
+    //     res.send({ admin: false });
+    //   }
+    //   const query = { email: email };
+    //   const user = await usersCollection.findOne(query);
+    //   const result = { admin: user?.role === "admin" };
+    //   res.send(result);
+    // });
+    // // find out is the user a instructor or not
+    // app.get("/users/instructor/:email", verifyToken, async (req, res) => {
+    //   const email = req.params.email;
+    //   if (req.decoded.email !== email) {
+    //     res.send({ instructor: false });
+    //   }
+    //   const query = { email: email };
+    //   const user = await usersCollection.findOne(query);
+    //   const result = { instructor: user?.role === "instructor" };
+    //   res.send(result);
+    // });
+    // // find out is the user a student or not
+    // app.get("/users/student/:email", verifyToken, async (req, res) => {
+    //   const email = req.params.email;
+    //   if (req.decoded.email !== email) {
+    //     res.send({ student: false });
+    //   }
+    //   const query = { email: email };
+    //   const user = await usersCollection.findOne(query);
+    //   const result = { student: user?.role === "student" };
+    //   res.send(result);
+    // });
+
+    // add and get classes
+
+    // get all the classes from collection
+   
+    app.get("/classes",verifyToken, verifyAdmin, async (req, res) => {
+      const result = await classesCollection.find().toArray();
+      res.send(result);
+    });
+
+
+    // get only approved classes
+    app.get("/approved-classes", async (req, res) => {
+      const query = { status: "approved" };
+      const result = await classesCollection.find(query, {sort: { "totalEnrolled": -1 }}).toArray();
+      res.send(result);
+    });
+
+    app.get("/classes/:email", verifyToken, verifyInstructor, async (req, res) => {
+      const email = req.params.email
+      const query = { instructorEmail: email };
+      const result = await classesCollection.find(query).toArray();
       console.log(result)
       res.send(result);
     });
-    // find out is the user a instructor or not
-    app.get("/users/instructor/:email", verifyToken, async (req, res) => {
-      const email = req.params.email;
-      if (req.decoded.email !== email) {
-        res.send({ instructor: false });
-      }
-      const query = { email: email };
-      const user = await usersCollection.findOne(query);
-      const result = { instructor: user?.role === "instructor" };
+
+
+    // add a new class by an instructor
+    app.post("/classes", verifyToken, verifyInstructor, async (req, res) => {
+      const classData = req.body;
+      const result = await classesCollection.insertOne(classData);
       res.send(result);
     });
-    // find out is the user a student or not
-    app.get("/users/student/:email", verifyToken, async (req, res) => {
-      const email = req.params.email;
-      if (req.decoded.email !== email) {
-        res.send({ student: false });
-      }
-      const query = { email: email };
-      const user = await usersCollection.findOne(query);
-      const result = { student: user?.role === "student" };
-      res.send(result);
-    });
-
-// add and get classes 
-
-// add a new class by an instructor 
-app.post('/classes', verifyToken, verifyInstructor, async(req, res) => {
-  const classData = req.body
-const result = await classesCollection.insertOne(classData)
-res.send(result)
-
-})
-
-
-
-
-
 
 
 
