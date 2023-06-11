@@ -14,12 +14,16 @@ const verifyToken = (req, res, next) => {
   const authorization = req.headers.authorization;
 
   if (!authorization) {
-    res.status(401).send({ error: true, message: "Unauthorized access" });
+    return res
+      .status(401)
+      .send({ error: true, message: "Unauthorized access" });
   }
   const token = authorization.split(" ")[1];
-  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (error, decoded) => {
-    if (error) {
-      res.status(401).send({ error: true, message: "Unauthorized access" });
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+    if (err) {
+      return res
+        .status(401)
+        .send({ error: true, message: "Unauthorized access" });
     }
     req.decoded = decoded;
     next();
@@ -255,15 +259,28 @@ async function run() {
     // );
 
 
-    // API's for selected classes
+    // API's for get the selected classes
     app.get('/my-classes/:email', verifyToken, verifyStudent, async(req, res)=>{
-      const email = req.params.id
+      const email = req.params.email
       const query = {email : email}
       const result = await selectedClassesCollection.find(query).toArray()
       res.send(result)
     })
 
-    
+    // add classes in selectedClassesCollection
+    app.post('/my-classes', verifyToken, verifyStudent, async(req, res) =>{
+      const newSelectedClass = req.body
+      const result = await selectedClassesCollection.insertOne(newSelectedClass)
+      res.send(result)
+    })
+
+        // API's for delete a selected class
+        app.delete('/my-classes/:id', verifyToken, verifyStudent, async(req, res)=>{
+          const id = req.params.id
+          const query = {_id : new ObjectId(id)}
+          const result = await selectedClassesCollection.deleteOne(query)
+          res.send(result)
+        })
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
