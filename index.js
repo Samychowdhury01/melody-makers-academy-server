@@ -47,7 +47,8 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+    // await client.connect();
+
     // collections
     const usersCollection = client.db("melodyDB").collection("users");
     const classesCollection = client.db("melodyDB").collection("classes");
@@ -171,7 +172,8 @@ async function run() {
     app.get("/approved-classes", async (req, res) => {
       const query = { status: "approved" };
       const result = await classesCollection
-        .find(query, { sort: { totalEnrolled: -1 } })
+        .find(query)
+        .sort({ totalEnroll: -1 })
         .toArray();
       res.send(result);
     });
@@ -196,6 +198,22 @@ async function run() {
       const result = await classesCollection.insertOne(classData);
       res.send(result);
     });
+
+    // Update specific instructors classes
+    app.patch('/classes/:id', verifyToken, verifyInstructor, async(req, res) =>{
+      const id = req.params.id
+      const newClassData = req.body
+      const query = {_id: new ObjectId(id)}
+      const updateDoc = {
+        $set: {
+         ...newClassData
+        },
+      }
+      const result = await classesCollection.updateOne(query, updateDoc)
+      res.send(result)
+    })
+
+
 
     // adding a status to the class data
     app.patch("/classes/status", verifyToken, verifyAdmin, async (req, res) => {
@@ -230,26 +248,7 @@ async function run() {
       }
     );
 
-    // update classes data by instructor
-    // TODO: have to uncomment this
-    // app.patch(
-    //   "/classes/:id",
-    //   verifyToken,
-    //   verifyInstructor,
-    //   async (req, res) => {
-    //     const id = req.params.id;
-    //     const data = req.body.feedback;
-    //     console.log(feedback)
-    //     const filter = { _id : new ObjectId(id) };
-    //     const updateDoc = {
-    //       $set: {
-    //         ...data
-    //       }
-    //     };
-    //     const result = await classesCollection.updateOne(filter, updateDoc);
-    //     res.send(result);
-    //   }
-    // );
+  
 
     // API's for get the selected classes
     app.get(
@@ -304,29 +303,42 @@ async function run() {
     });
 
     // API's for payments
+    app.get(
+      "/payment-history/:email",
+      verifyToken,
+      verifyStudent,
+      async (req, res) => {
+        const email = req.params.email;
+        const filter = { email: email };
+        const sort =  { date: -1 } ;
+        const result = await paymentCollection.find(filter).sort(sort).toArray();
+        res.send(result);
+      }
+    );
     app.post("/payments", verifyToken, async (req, res) => {
       const payment = req.body;
       const paymentInfo = await paymentCollection.insertOne(payment);
-    
-      const selectedClassId = {_id : new ObjectId(payment.selectedClassId)}
-      const classId = {_id : new ObjectId(payment.classId)}
+
+      const selectedClassId = { _id: new ObjectId(payment.selectedClassId) };
+      const classId = { _id: new ObjectId(payment.classId) };
 
       const updateDoc = {
-        $inc: { totalEnroll: 1, seats: -1 }
+        $inc: { totalEnroll: 1, seats: -1 },
       };
-      
+
       // Delete the item from selectedClassesCollection
-      const deleteResult = await selectedClassesCollection.deleteOne(selectedClassId);
-    
+      const deleteResult = await selectedClassesCollection.deleteOne(
+        selectedClassId
+      );
+
       // Increase totalEnrolled and decrease seats in classCollection
       const updateResult = await classesCollection.updateOne(
         classId,
         updateDoc
       );
-    
+
       res.send({ paymentInfo, deleteResult, updateResult });
     });
-    
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
